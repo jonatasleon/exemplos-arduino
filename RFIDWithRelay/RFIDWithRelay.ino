@@ -4,9 +4,15 @@
 #define SS_PIN 10
 #define RST_PIN 9
 #define RELE_PIN 7
-int rele_ligado = HIGH;
+#define LED_PIN 4
+int rele_ligado = LOW;
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
+
+int rfidInterval = 1000;
+unsigned long previousRfid = 0;
+unsigned long currentRfid;
+bool isReaded = false;
  
 char st[20];
  
@@ -20,10 +26,21 @@ void setup()
 
   pinMode(RELE_PIN, OUTPUT);
   digitalWrite(RELE_PIN, rele_ligado);
+
+  pinMode(LED_PIN, OUTPUT);
 }
  
 void loop() 
 {
+  currentRfid = millis();
+  if (previousRfid + rfidInterval > currentRfid && isReaded) {
+    digitalWrite(LED_PIN, LOW);
+    return;
+  }
+  isReaded = false;
+  digitalWrite(LED_PIN, HIGH);
+  previousRfid = currentRfid;
+  
   // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) 
   {
@@ -34,6 +51,9 @@ void loop()
   {
     return;
   }
+  
+  isReaded = true;  
+  
   //Mostra UID na serial
   Serial.print("UID da tag :");
   String conteudo= "";
@@ -48,9 +68,8 @@ void loop()
   Serial.println();
   Serial.print("Mensagem : ");
   conteudo.toUpperCase();
-  if (conteudo.substring(1) == "55 2A 0B A6") //UID 1 - Chaveiro
-  {
-    Serial.println("Ola Jonatas Leon!");
+  if (conteudo.substring(1) == "55 2A 0B A6") {
+    Serial.println("Ola Jonatas(Token)!");
     Serial.println();
     if (rele_ligado == HIGH) {
       rele_ligado = LOW;
@@ -61,10 +80,15 @@ void loop()
     digitalWrite(RELE_PIN, rele_ligado);
   }
  
-  if (conteudo.substring(1) == "9E 4A E6 20") //UID 2 - Cartao
-  {
-    Serial.println("Ola cartao!");
+  if (conteudo.substring(1) == "9E 4A E6 20") {
+    Serial.println("Ola Jonatas(Cartao)!");
     Serial.println();
+    if (rele_ligado == HIGH) {
+      rele_ligado = LOW;
+    } else {
+      rele_ligado = HIGH;
+    }
+
+    digitalWrite(RELE_PIN, rele_ligado);
   }
-  delay(500);
 }
